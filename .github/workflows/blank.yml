@@ -45,7 +45,7 @@ jobs:
           REMOTE_HOST: ${{ secrets.HOST }}
           # 服务器默认用户名
           REMOTE_USER: ${{ secrets.USER }}
-          # 目标目录
+          # 目标目录 
           TARGET: '/home/allen3/backend-projects/deploy_test_javanote'
           # 排除目录
           EXCLUDE: "/node_modules/"
