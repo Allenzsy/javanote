@@ -33,7 +33,7 @@ jobs:
           echo Add other actions to build,
           echo test, and deploy your project.
       - name: deploy_test
-        uses: easingthemes/ssh-deploy@v2.1.1
+        uses: easingthemes/ssh-deploy@v4.1.10
         env:
           # 本地.ssh文件下的私钥id_rsa，存在secrets的PRIVATE_KEY中
           SSH_PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
