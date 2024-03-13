@@ -83,9 +83,9 @@ public class JobScheduleHelper {
                             // 2、push time-ring
                             for (XxlJobInfo jobInfo: scheduleList) {
 
-                                // time-ring jump 如果当前时间大于要接下来执行到时间 + 5 秒
+                                // time-ring jump
                                 if (nowTime > jobInfo.getTriggerNextTime() + PRE_READ_MS) {
-                                    // 2.1、trigger-expire > 5s：pass && make next-trigger-time
+                                    // 2.1、trigger-expire > 5s：pass && make next-trigger-time 如果当前时间大于(要接下来执行到时间+5秒)
                                     logger.warn(">>>>>>>>>>> xxl-job, schedule misfire, jobId = " + jobInfo.getId());
 
                                     // 1、misfire match 匹配过期调度策略
@@ -100,39 +100,39 @@ public class JobScheduleHelper {
                                     refreshNextValidTime(jobInfo, new Date());
 
                                 } else if (nowTime > jobInfo.getTriggerNextTime()) {
-                                    // 2.2、trigger-expire < 5s：direct-trigger && make next-trigger-time
+                                    // 2.2、trigger-expire < 5s：direct-trigger && make next-trigger-time 如果当前时间大于要接下来执行到时间
 
-                                    // 1、trigger
+                                    // 1、trigger 立即触发执行
                                     JobTriggerPoolHelper.trigger(jobInfo.getId(), TriggerTypeEnum.CRON, -1, null, null, null);
                                     logger.debug(">>>>>>>>>>> xxl-job, schedule push trigger : jobId = " + jobInfo.getId() );
 
-                                    // 2、fresh next
+                                    // 2、fresh next 刷新下一次要执行的时间
                                     refreshNextValidTime(jobInfo, new Date());
 
-                                    // next-trigger-time in 5s, pre-read again
+                                    // next-trigger-time in 5s, pre-read again 判断下次触发执行使时间是否在 (当前时间+5秒内) , 是的话则加入时间轮
                                     if (jobInfo.getTriggerStatus()==1 && nowTime + PRE_READ_MS > jobInfo.getTriggerNextTime()) {
 
-                                        // 1、make ring second
+                                        // 1、make ring second 计算出下一次要触发执行的时间轮位置
                                         int ringSecond = (int)((jobInfo.getTriggerNextTime()/1000)%60);
 
-                                        // 2、push time ring
+                                        // 2、push time ring 加入到时间轮中
                                         pushTimeRing(ringSecond, jobInfo.getId());
 
-                                        // 3、fresh next
+                                        // 3、fresh next 再次计算下下次的触发执行时间
                                         refreshNextValidTime(jobInfo, new Date(jobInfo.getTriggerNextTime()));
 
                                     }
 
                                 } else {
-                                    // 2.3、trigger-pre-read：time-ring trigger && make next-trigger-time
+                                    // 2.3、trigger-pre-read：time-ring trigger && make next-trigger-time 正常情况, 当前时间 < 下一次的触发时间
 
-                                    // 1、make ring second
+                                    // 1、make ring second 计算出下一次要触发执行的时间轮位置
                                     int ringSecond = (int)((jobInfo.getTriggerNextTime()/1000)%60);
 
-                                    // 2、push time ring
+                                    // 2、push time ring 加入到时间轮中
                                     pushTimeRing(ringSecond, jobInfo.getId());
 
-                                    // 3、fresh next
+                                    // 3、fresh next 再次计算下下次的触发执行时间
                                     refreshNextValidTime(jobInfo, new Date(jobInfo.getTriggerNextTime()));
 
                                 }
