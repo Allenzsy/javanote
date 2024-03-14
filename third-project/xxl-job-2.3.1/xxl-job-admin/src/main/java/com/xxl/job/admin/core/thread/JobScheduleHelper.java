@@ -225,7 +225,7 @@ public class JobScheduleHelper {
 
                 while (!ringThreadToStop) {
 
-                    // align second
+                    // align second 按照秒对齐时间
                     try {
                         TimeUnit.MILLISECONDS.sleep(1000 - System.currentTimeMillis() % 1000);
                     } catch (InterruptedException e) {
@@ -238,8 +238,8 @@ public class JobScheduleHelper {
                         // second data
                         List<Integer> ringItemData = new ArrayList<>();
                         int nowSecond = Calendar.getInstance().get(Calendar.SECOND);   // 避免处理耗时太长，跨过刻度，向前校验一个刻度；
-                        for (int i = 0; i < 2; i++) {
-                            List<Integer> tmpData = ringData.remove( (nowSecond+60-i)%60 );
+                        for (int i = 0; i < 2; i++) { //从时间轮中取出某一刻度对应的数据并删除，这里为了避免处理耗时太长, 取了当前刻度和前一个刻度时间槽对应的数据
+                            List<Integer> tmpData = ringData.remove( (nowSecond+60-i)%60 ); //
                             if (tmpData != null) {
                                 ringItemData.addAll(tmpData);
                             }
@@ -248,7 +248,7 @@ public class JobScheduleHelper {
                         // ring trigger
                         logger.debug(">>>>>>>>>>> xxl-job, time-ring beat : " + nowSecond + " = " + Arrays.asList(ringItemData) );
                         if (ringItemData.size() > 0) {
-                            // do trigger
+                            // do trigger 遍历取出的任务，并触发执行（最终会通过rpc调用到执行器部分执行）
                             for (int jobId: ringItemData) {
                                 // do trigger
                                 JobTriggerPoolHelper.trigger(jobId, TriggerTypeEnum.CRON, -1, null, null, null);
