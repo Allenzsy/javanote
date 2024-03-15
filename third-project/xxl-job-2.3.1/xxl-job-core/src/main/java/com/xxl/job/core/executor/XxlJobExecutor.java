@@ -70,17 +70,17 @@ public class XxlJobExecutor  {
         // init logpath
         XxlJobFileAppender.initLogPath(logPath);
 
-        // init invoker, admin-client
+        // init invoker, admin-client 初始化 admin-client 用于注册执行器和调度中心保持心跳
         initAdminBizList(adminAddresses, accessToken);
 
 
-        // init JobLogFileCleanThread
+        // init JobLogFileCleanThread 初始化日志清理线程
         JobLogFileCleanThread.getInstance().start(logRetentionDays);
 
-        // init TriggerCallbackThread
+        // init TriggerCallbackThread 初始化回调以及重试线程（暂时不知道干什么的？）
         TriggerCallbackThread.getInstance().start();
 
-        // init executor-server
+        // init executor-server 初始化内嵌 http 服务器，其实就是 xxl-job 的自研 RPC，用于接收调度中心的请求
         initEmbedServer(address, ip, port, appname, accessToken);
     }
 

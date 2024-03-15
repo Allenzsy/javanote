@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 
 /**
+ * 执行器使用的
  * Created by xuxueli on 17/3/1.
  */
 public class ExecutorBizImpl implements ExecutorBiz {

@@ -40,7 +40,7 @@ public class JobApiController {
     @PermissionLimit(limit=false)
     public ReturnT<String> api(HttpServletRequest request, @PathVariable("uri") String uri, @RequestBody(required = false) String data) {
 
-        // valid
+        // valid 请求方法校验、uri校验，token校验
         if (!"POST".equalsIgnoreCase(request.getMethod())) {
             return new ReturnT<String>(ReturnT.FAIL_CODE, "invalid request, HttpMethod not support.");
         }
@@ -53,7 +53,7 @@ public class JobApiController {
             return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
         }
 
-        // services mapping
+        // services mapping 根据请求uri解析参数并执行相应方法
         if ("callback".equals(uri)) {
             List<HandleCallbackParam> callbackParamList = GsonTool.fromJson(data, List.class, HandleCallbackParam.class);
             return adminBiz.callback(callbackParamList);

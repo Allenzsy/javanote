@@ -39,12 +39,14 @@ public class ExecutorRegistryThread {
             @Override
             public void run() {
 
-                // registry
+                // registry 执行器向调度中心发起注册（第一次请求是注册，后续就是更新相当于心跳请求）
                 while (!toStop) {
                     try {
+                        // 构建请求参数
                         RegistryParam registryParam = new RegistryParam(RegistryConfig.RegistType.EXECUTOR.name(), appname, address);
                         for (AdminBiz adminBiz: XxlJobExecutor.getAdminBizList()) {
                             try {
+                                // 进行执行器注册 / 心跳请求
                                 ReturnT<String> registryResult = adminBiz.registry(registryParam);
                                 if (registryResult!=null && ReturnT.SUCCESS_CODE == registryResult.getCode()) {
                                     registryResult = ReturnT.SUCCESS;
@@ -76,11 +78,12 @@ public class ExecutorRegistryThread {
                     }
                 }
 
-                // registry remove
+                // registry remove 异常或者执行器停止之后，进行下线通知
                 try {
                     RegistryParam registryParam = new RegistryParam(RegistryConfig.RegistType.EXECUTOR.name(), appname, address);
                     for (AdminBiz adminBiz: XxlJobExecutor.getAdminBizList()) {
                         try {
+                            // 下线通知，如果宕机执行不到这里也没事，调度中心会有守护线程去掉没有心跳请求的执行器
                             ReturnT<String> registryResult = adminBiz.registryRemove(registryParam);
                             if (registryResult!=null && ReturnT.SUCCESS_CODE == registryResult.getCode()) {
                                 registryResult = ReturnT.SUCCESS;

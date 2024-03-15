@@ -34,13 +34,14 @@ public class EmbedServer {
     private Thread thread;
 
     public void start(final String address, final int port, final String appname, final String accessToken) {
-        executorBiz = new ExecutorBizImpl();
+        executorBiz = new ExecutorBizImpl(); // 创建业务实例
         thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                // param
+                // param 用于接受ServerSocketChannel的io请求，再把请求具体执行的回调函数转交给worker group执行
                 EventLoopGroup bossGroup = new NioEventLoopGroup();
                 EventLoopGroup workerGroup = new NioEventLoopGroup();
+                // 创建业务消费线程池
                 ThreadPoolExecutor bizThreadPool = new ThreadPoolExecutor(
                         0,
                         200,
@@ -60,7 +61,7 @@ public class EmbedServer {
                             }
                         });
                 try {
-                    // start server
+                    // start server 启动Netty服务
                     ServerBootstrap bootstrap = new ServerBootstrap();
                     bootstrap.group(bossGroup, workerGroup)
                             .channel(NioServerSocketChannel.class)
@@ -68,23 +69,27 @@ public class EmbedServer {
                                 @Override
                                 public void initChannel(SocketChannel channel) throws Exception {
                                     channel.pipeline()
+                                            // 空闲检测
                                             .addLast(new IdleStateHandler(0, 0, 30 * 3, TimeUnit.SECONDS))  // beat 3N, close if idle
+                                            // http编码处理类
                                             .addLast(new HttpServerCodec())
+                                            // post请求参数解析器
                                             .addLast(new HttpObjectAggregator(5 * 1024 * 1024))  // merge request & reponse to FULL
+                                            // 自定义业务handler
                                             .addLast(new EmbedHttpServerHandler(executorBiz, accessToken, bizThreadPool));
                                 }
                             })
                             .childOption(ChannelOption.SO_KEEPALIVE, true);
 
-                    // bind
+                    // bind 绑定端口
                     ChannelFuture future = bootstrap.bind(port).sync();
 
                     logger.info(">>>>>>>>>>> xxl-job remoting server start success, nettype = {}, port = {}", EmbedServer.class, port);
 
-                    // start registry
+                    // start registry 注册执行器到调度中心 xxl-job-admin
                     startRegistry(appname, address);
 
-                    // wait util stop
+                    // wait util stop 同步阻塞线程
                     future.channel().closeFuture().sync();
 
                 } catch (InterruptedException e) {
@@ -92,7 +97,7 @@ public class EmbedServer {
                 } catch (Exception e) {
                     logger.error(">>>>>>>>>>> xxl-job remoting server error.", e);
                 } finally {
-                    // stop
+                    // stop 执行到这里说明Netty服务可以停止了，释放资源
                     try {
                         workerGroup.shutdownGracefully();
                         bossGroup.shutdownGracefully();
@@ -121,7 +126,7 @@ public class EmbedServer {
     // ---------------------- registry ----------------------
 
     /**
-     * netty_http
+     * netty_http 自定义业务handler，主要用于处理调度中心发起的请求
      * <p>
      * Copy from : https://github.com/xuxueli/xxl-rpc
      *
@@ -142,7 +147,7 @@ public class EmbedServer {
 
         @Override
         protected void channelRead0(final ChannelHandlerContext ctx, FullHttpRequest msg) throws Exception {
-            // request parse
+            // request parse 解析请求
             //final byte[] requestBytes = ByteBufUtil.getBytes(msg.content());    // byteBuf.toString(io.netty.util.CharsetUtil.UTF_8);
             String requestData = msg.content().toString(CharsetUtil.UTF_8);
             String uri = msg.uri();
@@ -167,7 +172,7 @@ public class EmbedServer {
         }
 
         private Object process(HttpMethod httpMethod, String uri, String requestData, String accessTokenReq) {
-            // valid
+            // valid 校验请求方式，token，uri
             if (HttpMethod.POST != httpMethod) {
                 return new ReturnT<String>(ReturnT.FAIL_CODE, "invalid request, HttpMethod not support.");
             }
@@ -180,24 +185,24 @@ public class EmbedServer {
                 return new ReturnT<String>(ReturnT.FAIL_CODE, "The access token is wrong.");
             }
 
-            // services mapping
+            // services mapping 处理业务
             try {
                 switch (uri) {
-                    case "/beat":
+                    case "/beat": // 心跳检查，这里和执行器的注册守护线程向调度中心发起请求不同，是调度中心在做路由策略时使用
                         return executorBiz.beat();
-                    case "/idleBeat":
+                    case "/idleBeat": // 任务空闲检查
                         IdleBeatParam idleBeatParam = GsonTool.fromJson(requestData, IdleBeatParam.class);
                         return executorBiz.idleBeat(idleBeatParam);
-                    case "/run":
+                    case "/run": // 运行一个任务
                         TriggerParam triggerParam = GsonTool.fromJson(requestData, TriggerParam.class);
                         return executorBiz.run(triggerParam);
-                    case "/kill":
+                    case "/kill": // 杀死一个任务
                         KillParam killParam = GsonTool.fromJson(requestData, KillParam.class);
                         return executorBiz.kill(killParam);
-                    case "/log":
+                    case "/log": // 获得客户端记录的日志
                         LogParam logParam = GsonTool.fromJson(requestData, LogParam.class);
                         return executorBiz.log(logParam);
-                    default:
+                    default: // 无法解析的业务uri，异常返回
                         return new ReturnT<String>(ReturnT.FAIL_CODE, "invalid request, uri-mapping(" + uri + ") not found.");
                 }
             } catch (Exception e) {
