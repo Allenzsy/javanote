@@ -54,7 +54,7 @@ public class TriggerCallbackThread {
             return;
         }
 
-        // callback
+        // callback 任务执行完成后的回调线程, 会和
         triggerCallbackThread = new Thread(new Runnable() {
 
             @Override

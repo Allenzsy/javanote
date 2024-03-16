@@ -67,7 +67,7 @@ public class XxlJobExecutor  {
     // ---------------------- start + stop ----------------------
     public void start() throws Exception {
 
-        // init logpath
+        // init logpath 初始化日志
         XxlJobFileAppender.initLogPath(logPath);
 
         // init invoker, admin-client 初始化 admin-client 用于注册执行器和调度中心保持心跳
